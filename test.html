@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html>
+
+	<head>
+
+		<title>Draw Heart</title>
+
+		<style type="text/css">
+			* {
+				margin: 0;
+				padding: 0;
+			}
+
+			html {
+				height: 100%;
+				margin: 0;
+			}
+
+			body {
+				height: 100%;
+				background-color: white;
+			}
+
+			#canvasZone {
+				width: 100%;
+				height: 100%;
+				text-align: center;
+				background-color: black;
+			}
+		</style>
+
+
+	</head>
+
+	<body>
+
+		<div id="canvasZone">
+
+			<canvas id="myCanvas"></canvas>
+
+		</div>
+
+		<div id="bs">
+
+		</div>
+
+	</body>
+	<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script type="text/javascript">
+				var windowWidth = $(window).width();
+				var windowHeight = $(window).height();
+			jQuery(document).ready(function($) {
+
+				var canvas = document.getElementById('myCanvas');
+        var context = canvas.getContext('2d');
+        canvas.width = windowWidth;
+        canvas.height = windowHeight;
+         var centerX = canvas.width/2;
+        var centerY = canvas.height/2;
+        var arrow = new heart(centerX,centerY,6);
+        setInterval(function(){
+        	arrow.move(context);
+        },16);
+        // arrow.draw(context);
+			});
+			//构建心形的类
+			function heart(x,y,r){
+				this.x = x;//圆心点的坐标
+				this.y = y;//圆心点的坐标
+				this.rotation = 0;//旋转的角度
+				this.color ='red';//颜色
+				this.r = r;//半径
+				this.num = 360; //分割为 360 个点
+				this.lineWidth = 1;//线宽
+			}
+			// 绘制
+			 heart.prototype.draw = function(context){
+			 		var radian = Math.PI;//这里表示开始绘制的角度
+					var radianDecrement = (Math.PI/this.num) * 2;
+			 		context.save();
+			 		context.strokeStyle = this.color;
+					context.fillStyle = this.color;
+					context.lineWidth = this.lineWidth;
+					context.moveTo(getX(radian,this.r,this.x),getY(radian,this.r,this.y)); //移动到初始点
+					// context.rotate(this.rotation); //设置旋转角度
+					for(var i=0;i<=this.num;i++){
+						radian += radianDecrement;
+						context.lineTo(getX(radian,this.r,this.x), getY(radian,this.r,this.y)); //在旧点和新点之间连线
+					}
+					function getX(radius,r,x) { //由弧度得到 X 坐标
+					return x + r * (16 * Math.pow(Math.sin(radius), 3));
+					}
+					function getY(radius,r,y) { //由弧度得到 Y 坐标
+					return y - r * (13 * Math.cos(radius) - 5 * Math.cos(2 * radius) - 2 * Math.cos(3 * radius) - Math.cos(4 * radius));
+					}
+					context.closePath(); //路径闭合
+					context.stroke(); //画线
+					context.fill(); //填充
+					context.restore();
+			 };
+			  heart.prototype.move = function (context) {
+			  	// console.log(this.move);
+			  	// console.log(context);
+			  	// window.requestAnimationFrame(this.move);
+			  	context.beginPath();
+			  	context.clearRect(0,0,windowWidth,windowHeight);
+			  	console.log(context);
+			  	this.x +=1;
+			  	this.y +=1;
+			  	console.log(this.x);
+			  	console.log(this.y);
+			  	this.draw(context);
+			  };
+		</script>
+</html>

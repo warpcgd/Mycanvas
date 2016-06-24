@@ -1,116 +1,194 @@
 <!DOCTYPE html>
-
 <html>
 
-	<head>
+<head>
+    <title>Draw Heart</title>
+    <style type="text/css">
+    * {
+        margin: 0;
+        padding: 0;
+    }
 
-		<title>Draw Heart</title>
+    html {
+        height: 100%;
+        margin: 0;
+    }
 
-		<style type="text/css">
-			* {
-				margin: 0;
-				padding: 0;
-			}
+    body {
+        height: 100%;
+        background-color: white;
+    }
 
-			html {
-				height: 100%;
-				margin: 0;
-			}
+    #canvasZone {
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        background-color: black;
+    }
+    </style>
+</head>
 
-			body {
-				height: 100%;
-				background-color: white;
-			}
+<body>
+    <div id="canvasZone">
+        <canvas id="myCanvas"></canvas>
+    </div>
+    <div id="bs">
+    </div>
+</body>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="utils.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+var windowWidth = $(window).width();
+var windowHeight = $(window).height();
 
-			#canvasZone {
-				width: 100%;
-				height: 100%;
-				text-align: center;
-				background-color: black;
-			}
-		</style>
+jQuery(document).ready(function($) {
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    canvas.width = windowWidth;
+    canvas.height = windowHeight;
+    var centerX = canvas.width / 2;
+    var centerY = canvas.height / 2;
 
+    //Smooth motion 平滑运动
+    var Smooth = {
+        case: 'Smooth',
+        angle: 0, //起始角度
+        range: 3, //振幅
+    };
+    //Pulsing motion 脉冲运动
+    var Pulsing = {
+        case: 'Pulsing',
+        angle: 0,
+        range: 0.1,
+        speed: 0.2,
+        centerScale: 1,
+    };
+    //circular 圆运动
+    var circular = {
+        case: 'circular',
+        angle: 0, //起始调度
+        radius: 1, //定义半径
+        speed: 0.01, // 每帧旋转角度的增加值
+    };
+    //ellipse 椭圆运动
+    var ellipse = {
+        case: 'ellipse',
+        angle: 0, //起始角度
+        radiusX: 0.8, //x轴极坐标
+        radiusY: 0.6, //y轴极坐标
+        speed: 0.1, // 每帧旋转角度的增加值
+    };
+    // 随鼠标移动
+    var movefollowmouse = {
+        case: 'movefollowmouse',
+        mouse: window.utils.captureMouse(canvas),
+        angle: 0,
+        speed: 3,
+    };
+    var myheart = new heart(context, centerX, centerY, 6, movefollowmouse);
+    myheart.move();
+});
+//构建心形的类
+function heart(context, x, y, r, animation) {
+    //画布
+    this.context = context;
+    //图形参数
+    this.x = x; //圆心点的坐标
+    this.y = y; //圆心点的坐标
+    this.rotation = 0; //旋转的角度
+    this.color = 'red'; //颜色
+    this.r = r; //半径
+    this.num = 360; //分割为 360 个点
+    this.lineWidth = 1; //线宽
+    this.scaleX = 1; //放大比例
+    this.scaleY = 1; //放大比例
 
-	</head>
+    //动画参数
+    this.animation = animation;
 
-	<body>
+}
+// 绘制
+heart.prototype.draw = function() {
+    var radian = Math.PI; //这里表示开始绘制的角度
+    var radianDecrement = (Math.PI / this.num) * 2;
+    this.context.save();
+    this.context.translate(this.x, this.y); //坐标原点变化
+    this.context.rotate(this.rotation); //设置旋转角度
+    this.context.scale(this.scaleX, this.scaleY); //设置放大比例
+    this.context.moveTo(getX(radian, this.r, 0), getY(radian, this.r, 0)); //移动到初始点
+    //样式
+    this.context.strokeStyle = this.color;
+    this.context.fillStyle = this.color;
+    this.context.lineWidth = this.lineWidth;
 
-		<div id="canvasZone">
+    this.context.beginPath();
+    for (var i = 0; i <= this.num; i++) {
+        radian += radianDecrement;
+        this.context.lineTo(getX(radian, this.r, 0), getY(radian, this.r, 0)); //在旧点和新点之间连线
+    }
 
-			<canvas id="myCanvas"></canvas>
+    function getX(radius, r, x) { //由弧度得到 X 坐标
+        return x + r * (16 * Math.pow(Math.sin(radius), 3));
+    }
 
-		</div>
+    function getY(radius, r, y) { //由弧度得到 Y 坐标
+        return y - r * (13 * Math.cos(radius) - 5 * Math.cos(2 * radius) - 2 * Math.cos(3 * radius) - Math.cos(4 * radius));
+    }
 
-		<div id="bs">
+    this.context.closePath(); //路径闭合
+    this.context.fill(); //填充
+    this.context.stroke(); //画线
+    this.context.restore();
 
-		</div>
+};
+// 动画执行
+heart.prototype.move = function() {
+    window.requestAnimationFrame(this.move.bind(this, this.context));
+    this.context.clearRect(0, 0, windowWidth, windowHeight);
+    switch (this.animation.case) {
+        case 'Smooth':
+            this.y += Math.sin(this.animation.angle) * this.animation.range;
+            this.animation.angle += 0.1;
+            break;
+        case 'Pulsing':
+            this.scaleX = this.scaleY = this.animation.centerScale + Math.sin(this.animation.angle) * this.animation.range;
+            this.animation.angle += this.animation.speed;
+            break;
+        case 'circular':
+            this.x = this.x + Math.sin(this.animation.angle) * this.animation.radius;
+            this.y = this.y + Math.cos(this.animation.angle) * this.animation.radius;
+            this.animation.angle += this.animation.speed;
+            break;
+        case 'ellipse':
+            this.x = this.x + Math.sin(this.animation.angle) * this.animation.radiusX; //radiusX = 50
+            this.y = this.y + Math.cos(this.animation.angle) * this.animation.radiusY; //radiusY = 100
+            this.animation.angle += this.animation.speed;
+            break;
+        case 'movefollowmouse':
+            var dx = this.animation.mouse.x - this.x;
+            var dy = this.animation.mouse.y - this.y;
 
-	</body>
-	<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
-		<script type="text/javascript">
-				var windowWidth = $(window).width();
-				var windowHeight = $(window).height();
-			jQuery(document).ready(function($) {
+            if (Math.abs(dx)>1 && Math.abs(dy)>1) {
+                //得到角度值
+                this.animation.angle = Math.atan2(dy, dx);
+                this.rotation = this.animation.angle + 3 * Math.PI / 2; //angle默认为弧度
+                // x，y上的速度
+                var vx = Math.cos(this.animation.angle) * this.animation.speed;
+                var vy = Math.sin(this.animation.angle) * this.animation.speed;
+                //移动
+                this.x += vx;
+                this.y += vy;
+            }else{
+            	console.log(2);
+            }
+            break;
 
-				var canvas = document.getElementById('myCanvas');
-        var context = canvas.getContext('2d');
-        canvas.width = windowWidth;
-        canvas.height = windowHeight;
-         var centerX = canvas.width/2;
-        var centerY = canvas.height/2;
-        var arrow = new heart(centerX,centerY,6);
-        setInterval(function(){
-        	arrow.move(context);
-        },16);
-        // arrow.draw(context);
-			});
-			//构建心形的类
-			function heart(x,y,r){
-				this.x = x;//圆心点的坐标
-				this.y = y;//圆心点的坐标
-				this.rotation = 0;//旋转的角度
-				this.color ='red';//颜色
-				this.r = r;//半径
-				this.num = 360; //分割为 360 个点
-				this.lineWidth = 1;//线宽
-			}
-			// 绘制
-			 heart.prototype.draw = function(context){
-			 		var radian = Math.PI;//这里表示开始绘制的角度
-					var radianDecrement = (Math.PI/this.num) * 2;
-			 		context.save();
-			 		context.strokeStyle = this.color;
-					context.fillStyle = this.color;
-					context.lineWidth = this.lineWidth;
-					context.moveTo(getX(radian,this.r,this.x),getY(radian,this.r,this.y)); //移动到初始点
-					// context.rotate(this.rotation); //设置旋转角度
-					for(var i=0;i<=this.num;i++){
-						radian += radianDecrement;
-						context.lineTo(getX(radian,this.r,this.x), getY(radian,this.r,this.y)); //在旧点和新点之间连线
-					}
-					function getX(radius,r,x) { //由弧度得到 X 坐标
-					return x + r * (16 * Math.pow(Math.sin(radius), 3));
-					}
-					function getY(radius,r,y) { //由弧度得到 Y 坐标
-					return y - r * (13 * Math.cos(radius) - 5 * Math.cos(2 * radius) - 2 * Math.cos(3 * radius) - Math.cos(4 * radius));
-					}
-					context.closePath(); //路径闭合
-					context.stroke(); //画线
-					context.fill(); //填充
-					context.restore();
-			 };
-			  heart.prototype.move = function (context) {
-			  	// console.log(this.move);
-			  	// console.log(context);
-			  	// window.requestAnimationFrame(this.move);
-			  	context.beginPath();
-			  	context.clearRect(0,0,windowWidth,windowHeight);
-			  	console.log(context);
-			  	this.x +=1;
-			  	this.y +=1;
-			  	console.log(this.x);
-			  	console.log(this.y);
-			  	this.draw(context);
-			  };
-		</script>
+        default:
+            this.x += 1;
+            this.y += 1;
+    }
+    this.draw();
+};
+</script>
+
 </html>

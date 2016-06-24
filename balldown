@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Ball down</title>
+    <style type="text/css">
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    html {
+        height: 100%;
+        margin: 0;
+    }
+
+    body {
+        height: 100%;
+        background-color: white;
+    }
+
+    #canvas {
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        background-color: black;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="canvas">
+        <canvas id="myCanvas"></canvas>
+    </div>
+    <div id="bs">
+    </div>
+</body>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="utils.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+var windowWidth = $(window).width();
+var windowHeight = $(window).height();
+
+jQuery(document).ready(function($) {
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    canvas.width = windowWidth;
+    canvas.height = windowHeight;
+    var centerX = canvas.width / 2;
+    var centerY = canvas.height / 2;
+
+    //Smooth motion 平滑运动
+    var Smooth = {
+        case: 'Smooth',
+        angle: 0, //起始角度
+        range: 3, //振幅
+    };
+    //Pulsing motion 脉冲运动
+    var Pulsing = {
+        case: 'Pulsing',
+        angle: 0,
+        range: 0.1,
+        speed: 0.2,
+        centerScale: 1,
+    };
+    //circular 圆运动
+    var circular = {
+        case: 'circular',
+        angle: 0, //起始调度
+        radius: 1, //定义半径
+        speed: 0.01, // 每帧旋转角度的增加值
+    };
+    //ellipse 椭圆运动
+    var ellipse = {
+        case: 'ellipse',
+        angle: 0, //起始角度
+        radiusX: 0.8, //x轴极坐标
+        radiusY: 0.6, //y轴极坐标
+        speed: 0.1, // 每帧旋转角度的增加值
+    };
+    // 随鼠标移动
+    var movefollowmouse = {
+        case: 'movefollowmouse',
+        mouse: window.utils.captureMouse(canvas),
+        angle: 0,
+        speed: 3,
+    };
+    var movefalldown = {
+        case: 'movefalldown',
+        vx: 0,//初始速度为0
+        vy: 0,
+        ax : 0,
+        ay : 0, //分加速度为0
+        gravity : 0.2, //定义重力加速度
+        bounce : -0.8, //定义反弹系数
+        canvasHeight:windowHeight,
+    };
+    var myheart = new heart(context, centerX, centerY, 50, movefalldown);
+    myheart.move(movefollowmouse);
+});
+//构建心形的类
+function heart(context, x, y, r, animation) {
+    //画布
+    this.context = context;
+    //图形参数
+    this.x = x; //圆心点的坐标
+    this.y = y; //圆心点的坐标
+    this.rotation = 0; //旋转的角度
+    this.color = 'red'; //颜色
+    this.r = r; //半径
+    this.num = 360; //分割为 360 个点
+    this.lineWidth = 1; //线宽
+    this.scaleX = 1; //放大比例
+    this.scaleY = 1; //放大比例
+    // this.vx = 0;//出事熟读
+    // this.vy = 0;
+    // this.ax =0;//分加速度为0
+    // this.ay = 0;
+
+    //动画参数
+    this.animation = animation;
+
+}
+// 绘制
+heart.prototype.draw = function() {
+    var radian = Math.PI; //这里表示开始绘制的角度
+    var radianDecrement = (Math.PI / this.num) * 2;
+    this.context.save();
+    this.context.translate(this.x, this.y); //坐标原点变化
+    this.context.rotate(this.rotation); //设置旋转角度
+    this.context.scale(this.scaleX, this.scaleY); //设置放大比例
+    // this.context.moveTo(getX(radian, this.r, 0), getY(radian, this.r, 0)); //移动到初始点
+    //样式
+    this.context.strokeStyle = this.color;
+    this.context.fillStyle = this.color;
+    this.context.lineWidth = this.lineWidth;
+
+    this.context.beginPath();
+  	this.context.arc(0,0,this.r,0,Math.PI*2,false);
+    this.context.closePath(); //路径闭合
+    this.context.fill(); //填充
+    this.context.stroke(); //画线
+    this.context.restore();
+
+};
+// 动画执行
+heart.prototype.move = function() {
+    window.requestAnimationFrame(this.move.bind(this, this.context));
+    this.context.clearRect(0, 0, windowWidth, windowHeight);
+    switch (this.animation.case) {
+        case 'Smooth':
+            this.y += Math.sin(this.animation.angle) * this.animation.range;
+            this.animation.angle += 0.1;
+            break;
+        case 'Pulsing':
+            this.scaleX = this.scaleY = this.animation.centerScale + Math.sin(this.animation.angle) * this.animation.range;
+            this.animation.angle += this.animation.speed;
+            break;
+        case 'circular':
+            this.x = this.x + Math.sin(this.animation.angle) * this.animation.radius;
+            this.y = this.y + Math.cos(this.animation.angle) * this.animation.radius;
+            this.animation.angle += this.animation.speed;
+            break;
+        case 'ellipse':
+            this.x = this.x + Math.sin(this.animation.angle) * this.animation.radiusX; //radiusX = 50
+            this.y = this.y + Math.cos(this.animation.angle) * this.animation.radiusY; //radiusY = 100
+            this.animation.angle += this.animation.speed;
+            break;
+        case 'movefollowmouse':
+            var dx = this.animation.mouse.x - this.x;
+            var dy = this.animation.mouse.y - this.y;
+
+            if (Math.abs(dx)>1 && Math.abs(dy)>1) {
+                //得到角度值
+                this.animation.angle = Math.atan2(dy, dx);
+                this.rotation = this.animation.angle + 3 * Math.PI / 2; //angle默认为弧度
+                // x，y上的速度
+                var vx = Math.cos(this.animation.angle) * this.animation.speed;
+                var vy = Math.sin(this.animation.angle) * this.animation.speed;
+                //移动
+                this.x += vx;
+                this.y += vy;
+            }else{
+            	console.log(2);
+            }
+            break;
+         case 'movefalldown':
+         		this.animation.vy += this.animation.gravity;
+            this.y += this.animation.vy;
+            checkGround.call(this);
+            //碰撞检测
+           function checkGround(){
+               if(this.y + this.r > this.animation.canvasHeight){
+                   this.y = this.animation.canvasHeight - this.r;
+                   this.animation.vy  *= this.animation.bounce; //速度反向并且减小
+               }
+           }
+         	break;
+        default:
+            this.x += 1;
+            this.y += 1;
+    }
+    this.draw();
+};
+</script>

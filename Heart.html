@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Draw Heart</title>
+    <title>Draw ball</title>
     <style type="text/css">
     * {
         margin: 0;
@@ -85,11 +85,11 @@ jQuery(document).ready(function($) {
         angle: 0,
         speed: 3,
     };
-    var myheart = new heart(context, centerX, centerY, 6, movefollowmouse);
-    myheart.move();
+    var myball = new ball(context, centerX, centerY, 6, movefollowmouse);
+    myball.move();
 });
 //构建心形的类
-function heart(context, x, y, r, animation) {
+function ball(context, x, y, r, animation) {
     //画布
     this.context = context;
     //图形参数
@@ -108,7 +108,7 @@ function heart(context, x, y, r, animation) {
 
 }
 // 绘制
-heart.prototype.draw = function() {
+ball.prototype.draw = function() {
     var radian = Math.PI; //这里表示开始绘制的角度
     var radianDecrement = (Math.PI / this.num) * 2;
     this.context.save();
@@ -142,7 +142,7 @@ heart.prototype.draw = function() {
 
 };
 // 动画执行
-heart.prototype.move = function() {
+ball.prototype.move = function() {
     window.requestAnimationFrame(this.move.bind(this, this.context));
     this.context.clearRect(0, 0, windowWidth, windowHeight);
     switch (this.animation.case) {

@@ -2,6 +2,7 @@
 <html>
 
 <head>
+<meta charset="UTF-8">
     <title>Ball down</title>
     <style type="text/css">
     * {
@@ -29,6 +30,7 @@
 </head>
 
 <body>
+    <p id="record">当前的速度为：</p>
     <div id="canvas">
         <canvas id="myCanvas"></canvas>
     </div>
@@ -44,10 +46,12 @@ var windowHeight = $(window).height();
 jQuery(document).ready(function($) {
     var canvas = document.getElementById('myCanvas');
     var context = canvas.getContext('2d');
+    var oP = document.getElementById('record');
     canvas.width = windowWidth;
     canvas.height = windowHeight;
     var centerX = canvas.width / 2;
     var centerY = canvas.height / 2;
+    var mouse = utils.captureMouse(canvas);
 
     //Smooth motion 平滑运动
     var Smooth = {
@@ -87,19 +91,72 @@ jQuery(document).ready(function($) {
     };
     var movefalldown = {
         case: 'movefalldown',
-        vx: 0,//初始速度为0
+        vx: 0, //初始速度为0
         vy: 0,
-        ax : 0,
-        ay : 0, //分加速度为0
-        gravity : 0.2, //定义重力加速度
-        bounce : -0.8, //定义反弹系数
-        canvasHeight:windowHeight,
+        ax: 0,
+        ay: 0, //分加速度为0
+        gravity: 0.2, //定义重力加速度
+        bounce: -0.8, //定义反弹系数
+        canvasHeight: windowHeight,
     };
-    var myheart = new heart(context, centerX, centerY, 50, movefalldown);
-    myheart.move(movefollowmouse);
+    var myball = new ball(canvas, context, centerX, centerY, 50);
+    myball.move(movefalldown);
+
+    var w = 0,
+        h = 0,
+        isMouseDown = false,
+        speed, //speed 用于记录速度值
+        oldX, oldY; //定义变量oldX, oldY
+
+    //为canvas设置监听事件
+    canvas.addEventListener('mousedown', function(event) {
+        //判断是否点击在球体上
+        if (utils.containsPoint(myball.getBounds(), mouse.x, mouse.y)) {
+            w = mouse.x - myball.x;
+            h = mouse.y - myball.y;
+
+            //如果点击到了小球上，那么分别将小球的位置赋值给oldX, oldY
+            //并且随着小球的移动oldX和oldY每一帧都在刷新
+            oldX = myball.x;
+            oldY = myball.y;
+            isMouseDown = true;
+
+            canvas.addEventListener('mouseup', onMouseUp, false);
+            canvas.addEventListener('mousemove', onMouseMove, false);
+        }
+    }, false);
+
+    //mouseup事件执行函数
+    function onMouseUp(event) {
+        if (isMouseDown) {
+            trackVelocity();
+            myball.move(movefalldown);
+        }
+        canvas.removeEventListener('mouseup', onMouseUp, false);
+        canvas.removeEventListener('mousemove', onMouseMove, false);
+    }
+    //mousemove事件执行函数
+    function onMouseMove(event) {
+        myball.x = mouse.x - w;
+        myball.y = mouse.y - h;
+        myball.draw();
+    }
+    //计算抛出速度
+    function trackVelocity() {
+        //用当前小球的位置减去上一帧的坐标
+        vx = myball.x - oldX;
+        vy = myball.y - oldY;
+
+        //重新赋予oldX和oldY
+        oldX = myball.x;
+        oldY = myball.y;
+
+        speed = Math.sqrt(vx * vx + vy * vy);
+        oP.innerHTML = "当前的速度为：" + speed.toFixed();
+    }
 });
-//构建心形的类
-function heart(context, x, y, r, animation) {
+//构建圆形的类
+function ball(canvas, context, x, y, r) {
     //画布
     this.context = context;
     //图形参数
@@ -112,19 +169,24 @@ function heart(context, x, y, r, animation) {
     this.lineWidth = 1; //线宽
     this.scaleX = 1; //放大比例
     this.scaleY = 1; //放大比例
+    this.canvasWidth = canvas.width;
+    this.canvasHeight = canvas.height;
+    this.bounce = -0.8; //定义反弹系数
+    this.animation = {};
     // this.vx = 0;//出事熟读
     // this.vy = 0;
     // this.ax =0;//分加速度为0
     // this.ay = 0;
 
-    //动画参数
-    this.animation = animation;
+
 
 }
 // 绘制
-heart.prototype.draw = function() {
+ball.prototype.draw = function() {
     var radian = Math.PI; //这里表示开始绘制的角度
     var radianDecrement = (Math.PI / this.num) * 2;
+
+    //动画参数
     this.context.save();
     this.context.translate(this.x, this.y); //坐标原点变化
     this.context.rotate(this.rotation); //设置旋转角度
@@ -136,7 +198,7 @@ heart.prototype.draw = function() {
     this.context.lineWidth = this.lineWidth;
 
     this.context.beginPath();
-  	this.context.arc(0,0,this.r,0,Math.PI*2,false);
+    this.context.arc(0, 0, this.r, 0, Math.PI * 2, false);
     this.context.closePath(); //路径闭合
     this.context.fill(); //填充
     this.context.stroke(); //画线
@@ -144,8 +206,10 @@ heart.prototype.draw = function() {
 
 };
 // 动画执行
-heart.prototype.move = function() {
-    window.requestAnimationFrame(this.move.bind(this, this.context));
+ball.prototype.move = function(animation) {
+    // 动画执行效果
+    this.animation = animation;
+    window.requestAnimationFrame(this.move.bind(this, this.animation));
     this.context.clearRect(0, 0, windowWidth, windowHeight);
     switch (this.animation.case) {
         case 'Smooth':
@@ -170,7 +234,7 @@ heart.prototype.move = function() {
             var dx = this.animation.mouse.x - this.x;
             var dy = this.animation.mouse.y - this.y;
 
-            if (Math.abs(dx)>1 && Math.abs(dy)>1) {
+            if (Math.abs(dx) > 1 && Math.abs(dy) > 1) {
                 //得到角度值
                 this.animation.angle = Math.atan2(dy, dx);
                 this.rotation = this.animation.angle + 3 * Math.PI / 2; //angle默认为弧度
@@ -180,26 +244,50 @@ heart.prototype.move = function() {
                 //移动
                 this.x += vx;
                 this.y += vy;
-            }else{
-            	console.log(2);
+            } else {
+                console.log(2);
             }
             break;
-         case 'movefalldown':
-         		this.animation.vy += this.animation.gravity;
+        case 'movefalldown':
+            this.animation.vy += this.animation.gravity;
             this.y += this.animation.vy;
             checkGround.call(this);
             //碰撞检测
-           function checkGround(){
-               if(this.y + this.r > this.animation.canvasHeight){
-                   this.y = this.animation.canvasHeight - this.r;
-                   this.animation.vy  *= this.animation.bounce; //速度反向并且减小
-               }
-           }
-         	break;
+            function checkGround() {
+                if (this.y + this.r > this.animation.canvasHeight) {
+                    this.y = this.animation.canvasHeight - this.r;
+                    this.animation.vy *= this.animation.bounce; //速度反向并且减小
+                }
+            }
+            break;
+        case 'normal':
+            break;
         default:
-            this.x += 1;
-            this.y += 1;
+            break;
     }
+    if (this.x + this.r > this.canvasWidth) {
+        this.vx *= this.bounce;
+        this.x = this.canvasWidth - this.r;
+    } else if (this.x - this.r < 0) {
+        this.vx *= this.bounce;
+        this.x = this.r;
+    }
+    if (this.y + this.r > this.canvasHeight) {
+        this.vy *= this.bounce;
+        this.y = this.canvasHeight - this.r;
+    } else if (this.y - this.r < 0) {
+        this.vy *= this.bounce;
+        this.y = this.r;
+    }
+
     this.draw();
+};
+ball.prototype.getBounds = function() {
+    return {
+        x: this.x - this.r,
+        y: this.y - this.r,
+        width: this.r * 2,
+        height: this.r * 2
+    };
 };
 </script>
